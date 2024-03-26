@@ -23,7 +23,10 @@ function App() {
     });
 
     console.log("selected: ", selected);
+
     if (Array.isArray(selected)) {
+      const result = await invoke("get_files", { dir: selected[0] });
+      console.log("result: ", result);
       // 用户选择了多个目录
     } else if (selected === null) {
       // 用户取消了选择
