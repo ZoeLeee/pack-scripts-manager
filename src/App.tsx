@@ -71,7 +71,7 @@ function App() {
 
   return (
     <div className="container">
-      <H1 className="h-20">Script Manager List</H1>
+      <H1 className="h-20">脚本 Script Manager List</H1>
       <div className="flex flex-1 overflow-auto">
         <CardList className="w-1/2">
           {packs!.map((pack, index) => (
