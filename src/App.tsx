@@ -1,16 +1,20 @@
 import { useMemo, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { open } from "@tauri-apps/api/dialog";
-import { useLocalStorage } from "react-use";
+import { useLocalStorage, useSet } from "react-use";
 
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
-import { Button, H1, Section } from "@blueprintjs/core";
+import { Button, Callout, H1, Section, Spinner } from "@blueprintjs/core";
 import { Card, CardList } from "@blueprintjs/core";
+import { Play, Stop } from "@blueprintjs/icons";
 
 function App() {
   const [packs, setPacks] = useLocalStorage<any[]>("PKG-LIST", []);
   const [pkg, setPkg] = useLocalStorage("CURRENT_PKG", "");
+  const [out, setOut] = useState("");
+  const [runingCmd, { add: addRuning, remove: removeRuning }] =
+    useSet<string>();
 
   const scripts = useMemo(() => {
     const pkgObject = packs!.find((item) => {
@@ -62,8 +66,10 @@ function App() {
   const runScript = async (path: string, cmd: string) => {
     console.log("cmd: ", cmd);
     try {
+      addRuning(path + cmd);
       const result = await invoke("run_script", { path: path, script: cmd });
-      console.log("result: ", result);
+      removeRuning(path + cmd);
+      setOut(result as string);
     } catch (err) {
       console.log(err);
     }
@@ -71,7 +77,6 @@ function App() {
 
   return (
     <div className="container">
-      <H1 className="h-20">脚本 Script Manager List</H1>
       <div className="flex flex-1 overflow-auto">
         <CardList className="w-1/2">
           {packs!.map((pack, index) => (
@@ -88,12 +93,16 @@ function App() {
         <Card className="flex-1">
           {scripts.map((script) => {
             return (
-              <Card key={script}>
-                {script}
+              <Card
+                key={script}
+                className="flex justify-center items-center gap-2"
+              >
+                <Spinner size={12} />
+                <div>{script}</div>
                 <Button
                   minimal={true}
                   intent="primary"
-                  text="Run"
+                  icon={!runingCmd.has(pkg + script) ? <Play /> : <Stop />}
                   onClick={() => runScript(pkg, script)}
                 />
               </Card>
@@ -102,6 +111,9 @@ function App() {
         </Card>
       </div>
 
+      <Callout className="h-40 overflow-auto" title="终端信息" intent="primary">
+        <pre>{out}</pre>
+      </Callout>
       <Button onClick={handleClick} intent="primary" className="h-10">
         Select Foloder
       </Button>

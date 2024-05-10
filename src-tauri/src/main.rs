@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::fs;
 use std::process::Command;
 use std::process::Stdio;
+mod utils;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -42,38 +43,48 @@ fn get_files(dir: &str) -> String {
 
 #[tauri::command]
 async fn run_script(path: &str, script: &str) -> Result<String, String> {
-    use tokio::process::Command;
+    use std::io::{self, Write};
+    use std::process::Command;
 
     let output = Command::new("npm")
         .args(["run", script])
         .current_dir(path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
-
-    // if output.status.success() {
-    //     let s = String::from_utf8_lossy(&output.stdout);
-
-    //     print!("rustc succeeded and stdout was:\n{}", s);
-
-    //     String::from("success")
-    // } else {
-    //     let s = String::from_utf8_lossy(&output.stderr);
-
-    //     print!("rustc failed and stderr was:\n{}", s);
-
-    //     String::from("fail")
-    // }
+        .output();
 
     // 等待命令执行完成并捕获输出
-    let output = output.wait_with_output().await.map_err(|e| e.to_string())?;
+    // let output = output.wait_with_output().await.map_err(|e| e.to_string())?;
 
-    if output.status.success() {
-        // 如果命令执行成功，将输出转换为字符串并返回
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string();
-        Ok(output_str)
-    } else {
-        // 如果命令执行失败，返回错误信息
-        Err(String::from("Command execution failed"))
+    // if output.status.success() {
+    //     // 如果命令执行成功，将输出转换为字符串并返回
+    //     let output_str = String::from_utf8_lossy(&output.stdout).to_string();
+    //     let output_error_str = String::from_utf8_lossy(&output.stderr).to_string();
+    //     print!("output: {}\nerror: {}", output_str, output_error_str);
+    //     Ok(output_str)
+    // } else {
+    //     // 如果命令执行失败，返回错误信息
+    //     Err(String::from("Command execution failed"))
+    // }
+    match output {
+        Ok(output) => {
+            // 检查是否成功执行命令
+            if output.status.success() {
+                // 获取命令输出的字节流，并转换成字符串
+                let result = String::from_utf8_lossy(&output.stdout).to_string();
+                // 将结果发送给前端
+                println!("result: ok");
+                Ok(result)
+            } else {
+                // 获取错误输出的字节流，并转换成字符串
+                let error = String::from_utf8_lossy(&output.stderr).to_string();
+                // 将错误信息发送给前端
+                println!("result: error");
+                Ok(error)
+            }
+        }
+        Err(e) => {
+            // 发生错误时，将错误信息发送给前端
+            Err(String::from("Command execution failed"))
+        }
     }
 }
 
